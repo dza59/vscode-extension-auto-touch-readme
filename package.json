@@ -1,0 +1,51 @@
+{
+  "name": "auto-touch-readme",
+  "displayName": "Auto Touch README.md",
+  "description": "dfsfdsfs",
+  "version": "0.0.1",
+  "publisher": "Danni Z",
+  "engines": {
+    "vscode": "^1.89.0"
+  },
+  "categories": [
+    "Other",
+    "Programming Languages",
+    "AI",
+    "Snippets"
+  ],
+  "keywords": [
+    "readme",
+    "Markdown",
+    "README"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "auto-touch-readme.addReadme",
+        "title": "touch readme"
+      }
+    ]
+  },
+  "icon": "",
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.89.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@typescript-eslint/eslint-plugin": "^7.7.1",
+    "@typescript-eslint/parser": "^7.7.1",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5",
+    "@vscode/test-cli": "^0.0.9",
+    "@vscode/test-electron": "^2.3.9"
+  }
+}
