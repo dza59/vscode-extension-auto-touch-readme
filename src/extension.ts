@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
-import * as utils from './utils';
-import { autoTouchReadme } from './autoTouchReadme';
+import { main } from './main';
 
 export function activate(context: vscode.ExtensionContext) {
   let disposable = vscode.commands.registerCommand(
     'auto-touch-readme.addReadme',
-    autoTouchReadme,
+    main,
   );
 
   context.subscriptions.push(disposable);
