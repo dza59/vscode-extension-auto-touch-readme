@@ -23,6 +23,8 @@
 
 {{description}}
 
+{{gitUrl}}
+
 ## :sparkles: Features
 
 :heavy_check_mark: Feature 1;\

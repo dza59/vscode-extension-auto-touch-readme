@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { touchReadme, getWorkspacePath } from './utils';
+import { touchReadme } from './app';
+import { getWorkspacePath } from './utils';
 
 export async function main() {
   const wsPath = getWorkspacePath();
