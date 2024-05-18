@@ -24,9 +24,3 @@
 {{description}}
 
 {{gitUrl}}
-
-## :sparkles: Features
-
-:heavy_check_mark: Feature 1;\
-:heavy_check_mark: Feature 2;\
-:heavy_check_mark: Feature 3;

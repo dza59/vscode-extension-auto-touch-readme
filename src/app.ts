@@ -1,49 +1,20 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as Handlebars from 'handlebars';
 import * as vscode from 'vscode';
-import { templateData, templatePaths } from './constants';
-import { getWorkspacePath, isFileExists, parseGitConfigForUrl } from './utils';
+import {
+  getWorkspacePath,
+  getRepoUrl,
+  getScreenshots,
+  compileTemplate,
+} from './utils';
+import {
+  templateData,
+  templatePaths,
+  projectIndicators,
+  projectType,
+} from './constants';
 
-async function getScreenshots(
-  wsPath: string,
-): Promise<{ altText: string; label: string; path: string }[]> {
-  const possibleNames = ['screenshots', 'screenshot', 'images'];
-  try {
-    const directories = await fs.promises.readdir(wsPath, {
-      withFileTypes: true,
-    });
-    // Convert directory names to lowercase and find the first match
-    const screenshotsDir = directories.find(
-      (dir) =>
-        dir.isDirectory() && possibleNames.includes(dir.name.toLowerCase()),
-    );
-
-    if (!screenshotsDir) {
-      vscode.window.showInformationMessage(
-        'No suitable screenshots directory found.',
-      );
-      return [];
-    }
-
-    const screenshotsPath = path.join(wsPath, screenshotsDir.name);
-    const files = await fs.promises.readdir(screenshotsPath);
-    // Use a regex to filter files based on image extensions
-    const imageFiles = files.filter((file) => /\.(png|jpe?g|gif)$/i.test(file));
-
-    // Map each filename to an object that the Handlebars template can use
-    return imageFiles.map((filename, index) => ({
-      altText: `Demo ${index + 1} Screen Shot`,
-      label: `demo-${index + 1}`,
-      path: `${screenshotsDir.name}/${filename}`,
-    }));
-  } catch (error) {
-    vscode.window.showErrorMessage(`Error accessing the screenshots directory`);
-    return [];
-  }
-}
-
-export async function getProjectName(wsPath: string): Promise<string> {
+export async function getNodeProjectName(wsPath: string): Promise<string> {
   const pJsonPath = path.join(wsPath, 'package.json');
 
   try {
@@ -65,60 +36,83 @@ export async function getProjectName(wsPath: string): Promise<string> {
   }
 }
 
-async function getRepoUrl(wsPath: string): Promise<string> {
-  const gitConfigPath = path.join(wsPath, '.git', 'config');
-  try {
-    const configContent = await fs.promises.readFile(gitConfigPath, 'utf8');
-    return parseGitConfigForUrl(configContent);
-  } catch (error) {
-    console.error('Failed to read .git/config:', error);
-    return 'Failed to access or read the .git/config file.';
-  }
+export async function handleNodeProject(wsPath: string) {
+  // About Section: about.md
+  // update the project name
+
+  vscode.window.showInformationMessage(`in handleNodeProject`);
+
+  const pJsonPath = path.join(wsPath, projectType.indicators[0]);
+  const jsonContent = JSON.parse(await fs.promises.readFile(pJsonPath, 'utf8'));
+  const name = jsonContent.name
+    .split(/[-_]/)
+    .map(
+      (part: string) =>
+        part.charAt(0).toUpperCase() + part.slice(1).toLowerCase(),
+    )
+    .join(' ');
+
+  templateData.projectName = name;
+
+  // FOR testing
+  vscode.window.showInformationMessage(
+    ` ${templateData.projectName}: Type: ${projectType.type} Indicators: `,
+  );
+
+  // Tech Stack Section: stack.md
 }
-// compileTemplate function will compile the template data in Handlebars templates
-export async function compileTemplate(filePath: string, data: any) {
-  const content = await fs.promises.readFile(filePath, 'utf8');
-  return Handlebars.compile(content)(data);
+
+function handlePythonProject(wsPath: string) {
+  vscode.window.showErrorMessage(
+    'Python project detected. Not yet implemented.',
+  );
 }
 
 // this function will update the template data base on information from the workspace
 async function updateTemplatesData(wsPath: string) {
-  // for node.js project
-  const pJsonFile = await isFileExists(wsPath, 'package.json');
-
-  // for python project, TODO later...
-  const reqFile = await isFileExists(wsPath, 'requirements.txt');
-
+  // common arrtibutes cross all project types: github url, screenshots
   const gitUrl = await getRepoUrl(wsPath);
-
   if (gitUrl) {
     templateData.gitUrl = gitUrl;
   }
 
-  if (pJsonFile) {
-    // Done: Update About section
-    const projectName = await getProjectName(wsPath);
-    if (projectName) {
-      templateData.projectName = projectName;
+  const screenshots = await getScreenshots(wsPath);
+  if (screenshots.length > 0) {
+    templateData.screenshots = screenshots;
+  }
+
+  // handle individual project type
+  switch (projectType.type) {
+    case 'node':
+      return handleNodeProject(wsPath);
+    case 'python':
+      return handlePythonProject(wsPath);
+    default:
+      vscode.window.showInformationMessage(
+        `Handling generic or unknown project type: ${projectType.type}`,
+      );
+  }
+}
+
+export async function updateProjectType(wsPath: string) {
+  const files = await fs.promises.readdir(wsPath);
+  let projectFound = false;
+
+  for (let type in projectIndicators) {
+    const indicators = projectIndicators[type];
+    if (indicators.some((indicator) => files.includes(indicator))) {
+      projectType.type = type;
+      projectType.indicators = indicators.filter((indicator) =>
+        files.includes(indicator),
+      );
+      projectFound = true;
+      break;
     }
+  }
 
-    // Done: update screenshots if there exist a screenshots folder
-    const screenshots = await getScreenshots(wsPath);
-    if (screenshots.length > 0) {
-      templateData.screenshots = screenshots;
-    }
-
-    // FOR testing
-
-    vscode.window.showInformationMessage(
-      ` ${templateData.projectName}:  Found ${templateData.screenshots.length} screenshots. git URL: ${templateData.gitUrl}`,
-    );
-
-    // TODO: update the technologyStack array with the dependencies from package.json
-  } else {
-    vscode.window.showInformationMessage(
-      'package.json does not exist in the workspace.',
-    );
+  if (!projectFound) {
+    projectType.type = 'unknown'; // Set type to unknown if no indicators match
+    projectType.indicators = []; // Clear indicators
   }
 }
 
@@ -129,6 +123,11 @@ export async function touchReadme() {
   }
 
   const readmePath = path.join(wsPath, 'README.md');
+
+  // Steps:
+  // 1. find project type
+  // 2. depends on project type, update the template data
+  await updateProjectType(wsPath);
   await updateTemplatesData(wsPath);
 
   try {
@@ -138,6 +137,7 @@ export async function touchReadme() {
         (await compileTemplate(templatePaths[key], templateData)) + '\n\n';
     }
 
+    // create or replace the README.md file
     await fs.promises.writeFile(readmePath, content);
 
     // after creation, open the README.md file
