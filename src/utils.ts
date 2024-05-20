@@ -48,9 +48,6 @@ export async function getScreenshots(
     );
 
     if (!screenshotsDir) {
-      vscode.window.showInformationMessage(
-        'No suitable screenshots directory found.',
-      );
       return [];
     }
 

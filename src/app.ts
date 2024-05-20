@@ -12,7 +12,9 @@ import {
   templatePaths,
   projectIndicators,
   projectType,
+  commonTechStack,
 } from './constants';
+import { Technology } from './types';
 
 export async function getNodeProjectName(wsPath: string): Promise<string> {
   const pJsonPath = path.join(wsPath, 'package.json');
@@ -38,10 +40,6 @@ export async function getNodeProjectName(wsPath: string): Promise<string> {
 
 export async function handleNodeProject(wsPath: string) {
   // About Section: about.md
-  // update the project name
-
-  vscode.window.showInformationMessage(`in handleNodeProject`);
-
   const pJsonPath = path.join(wsPath, projectType.indicators[0]);
   const jsonContent = JSON.parse(await fs.promises.readFile(pJsonPath, 'utf8'));
   const name = jsonContent.name
@@ -54,12 +52,43 @@ export async function handleNodeProject(wsPath: string) {
 
   templateData.projectName = name;
 
-  // FOR testing
-  vscode.window.showInformationMessage(
-    ` ${templateData.projectName}: Type: ${projectType.type} Indicators: `,
-  );
+  //TODO:  Tech Stack Section: stack.md
+  const allDependencies = {
+    ...jsonContent.dependencies,
+    ...jsonContent.devDependencies,
+  };
 
-  // Tech Stack Section: stack.md
+  const usedTechStack: Technology[] = [];
+  //this is a node project so we will add it
+  usedTechStack.push({
+    name: 'node',
+    logo: commonTechStack['node'],
+  });
+
+  // Check each key in allDependencies against commonTechStack
+  Object.keys(allDependencies).forEach((dep) => {
+    const depName = dep.split('/')[0]; // removing scope if present
+    if (commonTechStack.hasOwnProperty(depName)) {
+      usedTechStack.push({
+        name: depName,
+        logo: commonTechStack[depName],
+      });
+
+      if (depName === 'express') {
+        usedTechStack.push({
+          name: 'postgresql',
+          logo: commonTechStack['postgresql'],
+        });
+      }
+    }
+  });
+
+  templateData.technologyStack = [...usedTechStack];
+
+  // FOR testing
+  // vscode.window.showInformationMessage(
+  //   ` ${templateData.projectName}: stack: ${templateData.technologyStack} `,
+  // );
 }
 
 function handlePythonProject(wsPath: string) {
@@ -89,7 +118,7 @@ async function updateTemplatesData(wsPath: string) {
       return handlePythonProject(wsPath);
     default:
       vscode.window.showInformationMessage(
-        `Handling generic or unknown project type: ${projectType.type}`,
+        `Handling generic or unknown project`,
       );
   }
 }

@@ -2,13 +2,6 @@
 
 The following tools were used in this project:
 
-- [Expo](https://expo.io/)
-- [Node.js](https://nodejs.org/en/)
-- [React](https://pt-br.reactjs.org/)
-- [React Native](https://reactnative.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-
 {{#each technologyStack}}
-
-- **{{this}}**
-  {{/each}}
+![{{this.name}}]({{this.logo}} 'Logo for {{this.name}}')
+{{/each}}
